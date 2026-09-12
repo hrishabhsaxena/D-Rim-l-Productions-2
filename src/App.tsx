@@ -87,7 +87,7 @@ function SocialLinks() {
 }
 
 function AudioController({ route }: { route: string }) {
-  const [enabled, setEnabled] = useState(() => localStorage.getItem('drimel-sound') === 'on');
+  const [enabled, setEnabled] = useState(() => localStorage.getItem('drimel-ambient-score.mp3') === 'on');
   const contextRef = useRef<AudioContext | null>(null);
   const nodesRef = useRef<OscillatorNode[]>([]);
   const gainRef = useRef<GainNode | null>(null);
