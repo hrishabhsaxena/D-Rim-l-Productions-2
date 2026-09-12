@@ -87,18 +87,8 @@ function SocialLinks() {
 }
 
 function AudioController({ route }: { route: string }) {
-  const [enabled, setEnabled] = useState(
-    () => localStorage.getItem('drimel-sound') === 'on'
-  );
-
+  const [enabled, setEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const stopSound = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-  };
 
   const startSound = async () => {
     if (!audioRef.current) {
@@ -111,10 +101,18 @@ function AudioController({ route }: { route: string }) {
     try {
       await audioRef.current.play();
     } catch (error) {
-      console.log('Audio playback requires user interaction.');
+      console.log('Autoplay blocked. Waiting for user interaction.');
     }
   };
 
+  const stopSound = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
+
+  // Try to start automatically when the website opens
   useEffect(() => {
     if (route === '/work') {
       stopSound();
@@ -123,27 +121,32 @@ function AudioController({ route }: { route: string }) {
 
     if (enabled) {
       startSound();
-    } else {
-      stopSound();
     }
 
-    return () => {
-      if (route === '/work') {
-        stopSound();
+    const handleFirstInteraction = () => {
+      if (enabled && route !== '/work') {
+        startSound();
       }
     };
-  }, [enabled, route]);
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, [route, enabled]);
 
   const toggle = () => {
-    const next = !enabled;
-
-    setEnabled(next);
-    localStorage.setItem('drimel-sound', next ? 'on' : 'off');
-
-    if (next && route !== '/work') {
-      startSound();
-    } else {
+    if (enabled) {
+      setEnabled(false);
       stopSound();
+    } else {
+      setEnabled(true);
+      startSound();
     }
   };
 
