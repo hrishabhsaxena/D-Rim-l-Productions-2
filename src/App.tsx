@@ -87,60 +87,77 @@ function SocialLinks() {
 }
 
 function AudioController({ route }: { route: string }) {
-  const [enabled, setEnabled] = useState(() => localStorage.getItem('drimel-ambient-score.mp3') === 'on');
-  const contextRef = useRef<AudioContext | null>(null);
-  const nodesRef = useRef<OscillatorNode[]>([]);
-  const gainRef = useRef<GainNode | null>(null);
+  const [enabled, setEnabled] = useState(
+    () => localStorage.getItem('drimel-sound') === 'on'
+  );
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const stopSound = () => {
-    nodesRef.current.forEach((node) => node.stop());
-    nodesRef.current = [];
-    gainRef.current?.disconnect();
-    gainRef.current = null;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   };
 
-  const startSound = () => {
-    const context = contextRef.current ?? new AudioContext();
-    contextRef.current = context;
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(0, context.currentTime);
-    gain.gain.linearRampToValueAtTime(0.018, context.currentTime + 1.2);
-    gain.connect(context.destination);
-    [110, 164.81, 220].forEach((frequency, index) => {
-      const oscillator = context.createOscillator();
-      oscillator.type = index === 1 ? 'triangle' : 'sine';
-      oscillator.frequency.value = frequency;
-      oscillator.detune.value = index * 4;
-      oscillator.connect(gain);
-      oscillator.start();
-      nodesRef.current.push(oscillator);
-    });
-    gainRef.current = gain;
+  const startSound = async () => {
+    if (!audioRef.current) {
+      const audio = new Audio('/drimel-ambient-score.mp3');
+      audio.loop = true;
+      audio.volume = 0.18;
+      audioRef.current = audio;
+    }
+
+    try {
+      await audioRef.current.play();
+    } catch (error) {
+      console.log('Audio playback requires user interaction.');
+    }
   };
 
   useEffect(() => {
-    if (route === '/work' && enabled) {
+    if (route === '/work') {
       stopSound();
       return;
     }
-    if (enabled && !nodesRef.current.length) startSound();
-    if (!enabled) stopSound();
-    return () => { if (route === '/work') stopSound(); };
+
+    if (enabled) {
+      startSound();
+    } else {
+      stopSound();
+    }
+
+    return () => {
+      if (route === '/work') {
+        stopSound();
+      }
+    };
   }, [enabled, route]);
 
   const toggle = () => {
     const next = !enabled;
+
     setEnabled(next);
     localStorage.setItem('drimel-sound', next ? 'on' : 'off');
-    if (next && route !== '/work') startSound();
+
+    if (next && route !== '/work') {
+      startSound();
+    } else {
+      stopSound();
+    }
   };
 
-  return <button className="sound-toggle" onClick={toggle} aria-label={enabled ? 'Turn sound off' : 'Turn sound on'}>
-    {enabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-    <span>SOUND {enabled ? 'ON' : 'OFF'}</span>
-  </button>;
+  return (
+    <button
+      className="sound-toggle"
+      onClick={toggle}
+      aria-label={enabled ? 'Turn sound off' : 'Turn sound on'}
+    >
+      {enabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+      <span>SOUND {enabled ? 'ON' : 'OFF'}</span>
+    </button>
+  );
 }
-
 function Header({ route }: { route: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
