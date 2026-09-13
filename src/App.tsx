@@ -89,8 +89,11 @@ function SocialLinks() {
 function AudioController({ route }: { route: string }) {
   const [enabled, setEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const spotifyPlayingRef = useRef(false);
 
   const startSound = async () => {
+    if (!enabled || spotifyPlayingRef.current) return;
+
     if (!audioRef.current) {
       const audio = new Audio('/drimel-ambient-score.mp3');
       audio.loop = true;
@@ -98,80 +101,84 @@ function AudioController({ route }: { route: string }) {
       audioRef.current = audio;
     }
 
-    try {
-      await audioRef.current.play();
-    } catch (error) {
-      console.log('Autoplay blocked. Waiting for user interaction.');
+    if (audioRef.current.paused) {
+      try {
+        await audioRef.current.play();
+      } catch {
+        console.log('Autoplay blocked. Waiting for user interaction.');
+      }
     }
   };
 
   const stopSound = () => {
-    if (audioRef.current) {
+    if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
     }
   };
 
-useEffect(() => {
-  if (route === '/work') {
-    stopSound();
-    return;
-  }
+  useEffect(() => {
+    const handleSpotifyPlayback = (event: Event) => {
+      const customEvent = event as CustomEvent<{ playing: boolean }>;
+      const playing = customEvent.detail?.playing;
 
-  if (enabled) {
-    startSound();
-  }
+      spotifyPlayingRef.current = playing;
 
-  const handleSpotifyPlayback = (event: Event) => {
-    const customEvent = event as CustomEvent<{ playing: boolean }>;
+      if (playing) {
+        stopSound();
+      } else if (enabled) {
+        startSound();
+      }
+    };
 
-    if (customEvent.detail.playing) {
-      stopSound();
-    } else if (enabled && route !== '/work') {
-      startSound();
-    }
-  };
-
-  window.addEventListener(
-    'spotify-playback',
-    handleSpotifyPlayback
-  );
-
-  const handleFirstInteraction = () => {
-    if (enabled && route !== '/work') {
-      startSound();
-    }
-  };
-
-  window.addEventListener('click', handleFirstInteraction, {
-    once: true,
-  });
-
-  window.addEventListener('touchstart', handleFirstInteraction, {
-    once: true,
-  });
-
-  window.addEventListener('keydown', handleFirstInteraction, {
-    once: true,
-  });
-
-  return () => {
-    window.removeEventListener(
+    window.addEventListener(
       'spotify-playback',
       handleSpotifyPlayback
     );
 
-    window.removeEventListener('click', handleFirstInteraction);
-    window.removeEventListener(
-      'touchstart',
-      handleFirstInteraction
-    );
-    window.removeEventListener(
-      'keydown',
-      handleFirstInteraction
-    );
-  };
-}, [route, enabled]);
+    const handleFirstInteraction = () => {
+      if (!spotifyPlayingRef.current && enabled) {
+        startSound();
+      }
+    };
+
+    window.addEventListener('click', handleFirstInteraction, {
+      once: true,
+    });
+
+    window.addEventListener('touchstart', handleFirstInteraction, {
+      once: true,
+    });
+
+    window.addEventListener('keydown', handleFirstInteraction, {
+      once: true,
+    });
+
+    if (enabled && !spotifyPlayingRef.current) {
+      startSound();
+    }
+
+    return () => {
+      window.removeEventListener(
+        'spotify-playback',
+        handleSpotifyPlayback
+      );
+
+      window.removeEventListener(
+        'click',
+        handleFirstInteraction
+      );
+
+      window.removeEventListener(
+        'touchstart',
+        handleFirstInteraction
+      );
+
+      window.removeEventListener(
+        'keydown',
+        handleFirstInteraction
+      );
+    };
+  }, [enabled]);
 
   const toggle = () => {
     if (enabled) {
@@ -179,7 +186,10 @@ useEffect(() => {
       stopSound();
     } else {
       setEnabled(true);
-      startSound();
+
+      if (!spotifyPlayingRef.current) {
+        startSound();
+      }
     }
   };
 
@@ -194,6 +204,7 @@ useEffect(() => {
     </button>
   );
 }
+}
 function Header({ route }: { route: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -207,9 +218,9 @@ function Header({ route }: { route: string }) {
     <div className="header-inner">
       <button className="logo-button" onClick={() => go('/')} aria-label="Go to home"><Logo compact /></button>
       <nav className="desktop-nav" aria-label="Primary navigation">{navItems.map((item) => <button key={item.path} className={route === item.path ? 'active' : ''} onClick={() => go(item.path)}>{item.label}</button>)}</nav>
-      <div className="header-actions"><SocialLinks /><AudioController route={route} /><button className="menu-button" onClick={() => setOpen(!open)} aria-label={open ? 'Close navigation' : 'Open navigation'}>{open ? <X size={22} /> : <Menu size={22} />}</button></div>
+      <div ><SocialLinks /> /><button className="menu-button" onClick={() => setOpen(!open)} aria-label={open ? 'Close navigation' : 'Open navigation'}>{open ? <X size={22} /> : <Menu size={22} />}</button></div>
     </div>
-    {open && <div className="mobile-menu"><div className="mobile-menu__links">{navItems.map((item) => <button key={item.path} className={route === item.path ? 'active' : ''} onClick={() => go(item.path)}>{item.label}<ArrowUpRight size={16} /></button>)}</div><div className="mobile-menu__footer"><SocialLinks /><AudioController route={route} /></div></div>}
+    {open && <div className="mobile-menu"><div className="mobile-menu__links">{navItems.map((item) => <button key={item.path} className={route === item.path ? 'active' : ''} onClick={() => go(item.path)}>{item.label}<ArrowUpRight size={16} /></button>)}</div><div className="mobile-menu__footer"><SocialLinks /> /></div></div>}
   </header>;
 }
 
