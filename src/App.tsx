@@ -523,22 +523,138 @@ function ContactForm() {
   const [values, setValues] = useState<FormValues>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitted, setSubmitted] = useState(false);
-  const update = (key: keyof FormValues, value: string | boolean) => setValues((current) => ({ ...current, [key]: value }));
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const update = (key: keyof FormValues, value: string | boolean) => {
+    setValues((current) => ({ ...current, [key]: value }));
+    setSubmitError('');
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     const next: Partial<Record<keyof FormValues, string>> = {};
     if (!values.name.trim()) next.name = 'Please enter your name.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) next.email = 'Please enter a valid email address.';
-    if (values.mobile && !/^[+\d][\d\s()-]{7,}$/.test(values.mobile)) next.mobile = 'Please enter a valid mobile number.';
-    if (!values.description.trim() || values.description.trim().length < 30) next.description = 'Please share at least 30 characters about the project.';
-    if (!values.consent) next.consent = 'Please confirm that we may contact you about this enquiry.';
-    setErrors(next);
-    if (!Object.keys(next).length) setSubmitted(true);
-  };
-  if (submitted) return <div className="form-success"><Sparkles size={28} strokeWidth={1.2} /><span className="eyebrow">Enquiry received</span><h2>Thank you.</h2><p>Your enquiry has been received. The D’Rimél Productions team will get back to you soon.</p><button className="text-link" onClick={() => { setSubmitted(false); setValues(initialForm); }}>Send another enquiry <ArrowRight size={15} /></button></div>;
-  return <form className="contact-form" onSubmit={submit} noValidate><div className="form-grid"><Field label="Full Name *" value={values.name} onChange={(value) => update('name', value)} error={errors.name} /><Field label="Email Address *" type="email" value={values.email} onChange={(value) => update('email', value)} error={errors.email} /><Field label="Mobile Number" value={values.mobile} onChange={(value) => update('mobile', value)} error={errors.mobile} /><Field label="Company / Organization" value={values.company} onChange={(value) => update('company', value)} /><SelectField label="Project Type" value={values.projectType} onChange={(value) => update('projectType', value)} options={['Film', 'Theatre', 'Advertising', 'Album / Single', 'Other']} /><SelectField label="Budget Range" value={values.budget} onChange={(value) => update('budget', value)} options={['To be discussed', 'Under ₹1L', '₹1L – ₹5L', '₹5L+']} /><Field label="Preferred Timeline" value={values.timeline} onChange={(value) => update('timeline', value)} /><Field label="How did you hear about us?" value={values.referral} onChange={(value) => update('referral', value)} /></div><label className="field field--full"><span>Project Description *</span><textarea rows={6} value={values.description} onChange={(event) => update('description', event.target.value)} placeholder="Tell us about the world this music needs to inhabit." />{errors.description && <small>{errors.description}</small>}</label><label className="consent-field"><input type="checkbox" checked={values.consent} onChange={(event) => update('consent', event.target.checked)} /><span>I consent to D’Rimél Productions contacting me about this project enquiry. *</span></label>{errors.consent && <small className="consent-error">{errors.consent}</small>}<button className="button-link form-submit" type="submit">Send project enquiry <ArrowRight size={16} /></button></form>;
-}
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      next.email = 'Please enter a valid email address.';
+    }
+    if (values.mobile && !/^[+\d][\d\s()-]{7,}$/.test(values.mobile)) {
+      next.mobile = 'Please enter a valid mobile number.';
+    }
+    if (!values.description.trim() || values.description.trim().length < 30) {
+      next.description = 'Please share at least 30 characters about the project.';
+    }
+    if (!values.consent) {
+      next.consent = 'Please confirm that we may contact you about this enquiry.';
+    }
 
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('access_key', '1b580d7f-9476-408e-87f9-22e4b3ea53e9');
+      formData.append('subject', `New Project Enquiry — ${values.name.trim()}`);
+      formData.append('from_name', 'D’Rimél Productions Website');
+      formData.append('replyto', values.email.trim());
+      formData.append('name', values.name.trim());
+      formData.append('email', values.email.trim());
+      formData.append('mobile', values.mobile.trim());
+      formData.append('company', values.company.trim());
+      formData.append('project_type', values.projectType);
+      formData.append('budget_range', values.budget);
+      formData.append('preferred_timeline', values.timeline.trim());
+      formData.append('referral', values.referral.trim());
+      formData.append('project_description', values.description.trim());
+      formData.append('consent', values.consent ? 'Yes' : 'No');
+
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Unable to submit the enquiry.');
+      }
+
+      setSubmitted(true);
+      setErrors({});
+    } catch (error) {
+      console.error('Web3Forms submission error:', error);
+      setSubmitError(
+        'We could not send your enquiry right now. Please try again or email info@drimelproductions.com.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="form-success">
+        <Sparkles size={28} strokeWidth={1.2} />
+        <span className="eyebrow">Enquiry received</span>
+        <h2>Thank you.</h2>
+        <p>Your enquiry has been received. The D’Rimél Productions team will get back to you soon.</p>
+        <button
+          className="text-link"
+          onClick={() => {
+            setSubmitted(false);
+            setValues(initialForm);
+            setErrors({});
+            setSubmitError('');
+          }}
+        >
+          Send another enquiry <ArrowRight size={15} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="contact-form" onSubmit={submit} noValidate>
+      <div className="form-grid">
+        <Field label="Full Name *" value={values.name} onChange={(value) => update('name', value)} error={errors.name} />
+        <Field label="Email Address *" type="email" value={values.email} onChange={(value) => update('email', value)} error={errors.email} />
+        <Field label="Mobile Number" value={values.mobile} onChange={(value) => update('mobile', value)} error={errors.mobile} />
+        <Field label="Company / Organization" value={values.company} onChange={(value) => update('company', value)} />
+        <SelectField label="Project Type" value={values.projectType} onChange={(value) => update('projectType', value)} options={['Film', 'Theatre', 'Advertising', 'Album / Single', 'Other']} />
+        <SelectField label="Budget Range" value={values.budget} onChange={(value) => update('budget', value)} options={['To be discussed', 'Under ₹1L', '₹1L – ₹5L', '₹5L+']} />
+        <Field label="Preferred Timeline" value={values.timeline} onChange={(value) => update('timeline', value)} />
+        <Field label="How did you hear about us?" value={values.referral} onChange={(value) => update('referral', value)} />
+      </div>
+      <label className="field field--full">
+        <span>Project Description *</span>
+        <textarea
+          rows={6}
+          value={values.description}
+          onChange={(event) => update('description', event.target.value)}
+          placeholder="Tell us about the world this music needs to inhabit."
+        />
+        {errors.description && <small>{errors.description}</small>}
+      </label>
+      <label className="consent-field">
+        <input
+          type="checkbox"
+          checked={values.consent}
+          onChange={(event) => update('consent', event.target.checked)}
+        />
+        <span>I consent to D’Rimél Productions contacting me about this project enquiry. *</span>
+      </label>
+      {errors.consent && <small className="consent-error">{errors.consent}</small>}
+      {submitError && <small className="consent-error">{submitError}</small>}
+      <button className="button-link form-submit" type="submit" disabled={submitting}>
+        {submitting ? 'Sending enquiry…' : 'Send project enquiry'} <ArrowRight size={16} />
+      </button>
+    </form>
+  );
+}
 function Field({ label, value, onChange, error, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; error?: string; type?: string }) {
   return <label className="field"><span>{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} />{error && <small>{error}</small>}</label>;
 }
