@@ -204,7 +204,6 @@ function AudioController({ route }: { route: string }) {
     </button>
   );
 }
-}
 function Header({ route }: { route: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
