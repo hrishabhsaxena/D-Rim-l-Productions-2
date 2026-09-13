@@ -90,6 +90,7 @@ function AudioController({ route }: { route: string }) {
   const [enabled, setEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const spotifyPlayingRef = useRef(false);
+  const playRequestRef = useRef(0);
 
   const startSound = async () => {
     if (!enabled || spotifyPlayingRef.current) return;
@@ -102,8 +103,19 @@ function AudioController({ route }: { route: string }) {
     }
 
     if (audioRef.current.paused) {
+      const requestId = ++playRequestRef.current;
+
       try {
         await audioRef.current.play();
+
+        // If Spotify started while play() was pending, immediately stop BGM.
+        if (
+          requestId !== playRequestRef.current ||
+          !enabled ||
+          spotifyPlayingRef.current
+        ) {
+          audioRef.current.pause();
+        }
       } catch {
         console.log('Autoplay blocked. Waiting for user interaction.');
       }
@@ -111,6 +123,9 @@ function AudioController({ route }: { route: string }) {
   };
 
   const stopSound = () => {
+    // Invalidate any pending audio.play() request.
+    playRequestRef.current += 1;
+
     if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
     }
@@ -397,43 +412,57 @@ function SpotifyTrackEmbed({
 
 
           EmbedController.addListener(
-  'playback_update',
-  (event: any) => {
-    const data = event?.data;
+            'playback_update',
+            (event: any) => {
+              const data = event?.data;
+              if (!data) return;
 
-    if (!data) return;
+              // Any active Spotify update forces the website BGM OFF.
+              if (!data.isPaused) {
+                if (
+                  activeSpotifyTrackId !== null &&
+                  activeSpotifyTrackId !== id
+                ) {
+                  return;
+                }
 
-    // Ignore events from tracks that are not currently active
-    if (activeSpotifyTrackId !== id) return;
+                activeSpotifyTrackId = id;
 
-    // Spotify track paused
-    if (data.isPaused) {
-      activeSpotifyTrackId = null;
+                window.dispatchEvent(
+                  new CustomEvent('spotify-playback', {
+                    detail: { playing: true },
+                  })
+                );
 
-      window.dispatchEvent(
-        new CustomEvent('spotify-playback', {
-          detail: { playing: false },
-        })
-      );
+                // Track finished.
+                if (
+                  data.duration > 0 &&
+                  data.position >= data.duration - 1000
+                ) {
+                  activeSpotifyTrackId = null;
 
-      return;
-    }
+                  window.dispatchEvent(
+                    new CustomEvent('spotify-playback', {
+                      detail: { playing: false },
+                    })
+                  );
+                }
 
-    // Spotify track finished
-    if (
-      data.duration > 0 &&
-      data.position >= data.duration - 1000
-    ) {
-      activeSpotifyTrackId = null;
+                return;
+              }
 
-      window.dispatchEvent(
-        new CustomEvent('spotify-playback', {
-          detail: { playing: false },
-        })
-      );
-    }
-  }
-);
+              // Only the active Spotify track can resume the BGM.
+              if (activeSpotifyTrackId !== id) return;
+
+              activeSpotifyTrackId = null;
+
+              window.dispatchEvent(
+                new CustomEvent('spotify-playback', {
+                  detail: { playing: false },
+                })
+              );
+            }
+          );
 
           }
         );
