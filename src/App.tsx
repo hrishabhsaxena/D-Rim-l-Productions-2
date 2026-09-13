@@ -317,6 +317,8 @@ type SpotifyController = {
 
 const spotifyControllers = new Map<string, SpotifyController>();
 
+let activeSpotifyTrackId: string | null = null;
+
 let spotifyApiPromise: Promise<any> | null = null;
 
 function getSpotifyAPI() {
@@ -370,58 +372,68 @@ function SpotifyTrackEmbed({
           spotifyControllers.set(id, EmbedController);
 
           EmbedController.addListener(
-            'playback_started',
-            () => {
-              // Pause all other Spotify tracks
-              spotifyControllers.forEach(
-                (otherController, otherId) => {
-                  if (otherId !== id) {
-                    otherController.pause();
-                  }
-                }
-              );
+  'playback_started',
+  () => {
+    // Pause all other Spotify tracks
+    spotifyControllers.forEach(
+      (otherController, otherId) => {
+        if (otherId !== id) {
+          otherController.pause();
+        }
+      }
+    );
 
-              // Pause website background music
-              window.dispatchEvent(
-                new CustomEvent('spotify-playback', {
-                  detail: { playing: true },
-                })
-              );
-            }
-          );
+    // Remember the currently playing track
+    activeSpotifyTrackId = id;
+
+    // Pause website background music
+    window.dispatchEvent(
+      new CustomEvent('spotify-playback', {
+        detail: { playing: true },
+      })
+    );
+  }
+);
+
 
           EmbedController.addListener(
-            'playback_update',
-            (event: any) => {
-              const data = event?.data;
+  'playback_update',
+  (event: any) => {
+    const data = event?.data;
 
-              if (!data) return;
+    if (!data) return;
 
-              // Spotify paused
-              if (data.isPaused) {
-                window.dispatchEvent(
-                  new CustomEvent('spotify-playback', {
-                    detail: { playing: false },
-                  })
-                );
-              }
+    // Ignore events from tracks that are not currently active
+    if (activeSpotifyTrackId !== id) return;
 
-              // Spotify finished
-              if (
-                data.duration > 0 &&
-                data.position >= data.duration - 1000
-              ) {
-                window.dispatchEvent(
-                  new CustomEvent('spotify-playback', {
-                    detail: { playing: false },
-                  })
-                );
-              }
-            }
-          );
-        }
+    // Spotify track paused
+    if (data.isPaused) {
+      activeSpotifyTrackId = null;
+
+      window.dispatchEvent(
+        new CustomEvent('spotify-playback', {
+          detail: { playing: false },
+        })
       );
-    };
+
+      return;
+    }
+
+    // Spotify track finished
+    if (
+      data.duration > 0 &&
+      data.position >= data.duration - 1000
+    ) {
+      activeSpotifyTrackId = null;
+
+      window.dispatchEvent(
+        new CustomEvent('spotify-playback', {
+          detail: { playing: false },
+        })
+      );
+    }
+  }
+);
 
     setupSpotify();
 
