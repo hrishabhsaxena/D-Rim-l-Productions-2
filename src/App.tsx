@@ -207,20 +207,79 @@ function AudioController({ route }: { route: string }) {
 function Header({ route }: { route: string }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
+
     window.addEventListener('scroll', onScroll);
+
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-  const go = (path: string) => { setOpen(false); navigate(path); };
-  return <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''}`}>
-    <div className="header-inner">
-      <button className="logo-button" onClick={() => go('/')} aria-label="Go to home"><Logo compact /></button>
-      <nav className="desktop-nav" aria-label="Primary navigation">{navItems.map((item) => <button key={item.path} className={route === item.path ? 'active' : ''} onClick={() => go(item.path)}>{item.label}</button>)}</nav>
-      <div ><SocialLinks /> /><button className="menu-button" onClick={() => setOpen(!open)} aria-label={open ? 'Close navigation' : 'Open navigation'}>{open ? <X size={22} /> : <Menu size={22} />}</button></div>
-    </div>
-    {open && <div className="mobile-menu"><div className="mobile-menu__links">{navItems.map((item) => <button key={item.path} className={route === item.path ? 'active' : ''} onClick={() => go(item.path)}>{item.label}<ArrowUpRight size={16} /></button>)}</div><div className="mobile-menu__footer"><SocialLinks /> /></div></div>}
-  </header>;
+
+  const go = (path: string) => {
+    setOpen(false);
+    navigate(path);
+  };
+
+  return (
+    <header className={`site-header ${scrolled ? 'site-header--scrolled' : ''}`}>
+      <div className="header-inner">
+        <button
+          className="logo-button"
+          onClick={() => go('/')}
+          aria-label="Go to home"
+        >
+          <Logo compact />
+        </button>
+
+        <nav className="desktop-nav" aria-label="Primary navigation">
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              className={route === item.path ? 'active' : ''}
+              onClick={() => go(item.path)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="header-actions">
+          <SocialLinks />
+          <AudioController route={route} />
+
+          <button
+            className="menu-button"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? 'Close navigation' : 'Open navigation'}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mobile-menu">
+          <div className="mobile-menu__links">
+            {navItems.map((item) => (
+              <button
+                key={item.path}
+                className={route === item.path ? 'active' : ''}
+                onClick={() => go(item.path)}
+              >
+                {item.label}
+                <ArrowUpRight size={16} />
+              </button>
+            ))}
+          </div>
+
+          <div className="mobile-menu__footer">
+            <SocialLinks />
+          </div>
+        </div>
+      )}
+    </header>
+  );
 }
 
 function Footer() {
