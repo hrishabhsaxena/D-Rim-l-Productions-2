@@ -204,8 +204,149 @@ function Hero({ children, eyebrow, title, text, image = false }: { children?: Re
   return <section className={`page-hero ${image ? 'page-hero--image' : ''}`} style={image ? { backgroundImage: `url(${orchestraImage})` } : undefined}><div className="page-hero__inner"><span className="eyebrow reveal reveal--one">{eyebrow}</span><h1 className="reveal reveal--two">{title}</h1>{text && <p className="hero-copy reveal reveal--three">{text}</p>}{children}</div>{image && <div className="hero-scroll"><span>Scroll to listen</span><Waveform compact /></div>}</section>;
 }
 
-function SpotifyTrackEmbed({ id, index }: { id: string; index: number }) {
-  return <article className="work-card"><div className="work-card__meta"><span>Track {String(index + 1).padStart(2, '0')}</span><CircleDot size={12} /></div><iframe title={`Spotify track ${index + 1}`} src={`https://open.spotify.com/embed/track/${id}`} width="100%" height="152" frameBorder="0" allowFullScreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" /></article>;
+type SpotifyController = {
+  play: () => void;
+  pause: () => void;
+  addListener: (
+    event: string,
+    callback: (event: any) => void
+  ) => void;
+};
+
+const spotifyControllers = new Map<string, SpotifyController>();
+
+let spotifyApiPromise: Promise<any> | null = null;
+
+function getSpotifyAPI() {
+  if (spotifyApiPromise) return spotifyApiPromise;
+
+  spotifyApiPromise = new Promise((resolve) => {
+    if ((window as any).IFrameAPI) {
+      resolve((window as any).IFrameAPI);
+      return;
+    }
+
+    (window as any).onSpotifyIframeApiReady = (IFrameAPI: any) => {
+      resolve(IFrameAPI);
+    };
+  });
+
+  return spotifyApiPromise;
+}
+
+function SpotifyTrackEmbed({
+  id,
+  index,
+}: {
+  id: string;
+  index: number;
+}) {
+  const embedRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let controller: SpotifyController | null = null;
+    let mounted = true;
+
+    const setupSpotify = async () => {
+      const IFrameAPI = await getSpotifyAPI();
+
+      if (!mounted || !embedRef.current) return;
+
+      const options = {
+        width: '100%',
+        height: 152,
+        uri: `spotify:track:${id}`,
+      };
+
+      IFrameAPI.createController(
+        embedRef.current,
+        options,
+        (EmbedController: SpotifyController) => {
+          if (!mounted) return;
+
+          controller = EmbedController;
+          spotifyControllers.set(id, EmbedController);
+
+          EmbedController.addListener(
+            'playback_started',
+            () => {
+              // Pause all other Spotify tracks
+              spotifyControllers.forEach(
+                (otherController, otherId) => {
+                  if (otherId !== id) {
+                    otherController.pause();
+                  }
+                }
+              );
+
+              // Pause website background music
+              window.dispatchEvent(
+                new CustomEvent('spotify-playback', {
+                  detail: { playing: true },
+                })
+              );
+            }
+          );
+
+          EmbedController.addListener(
+            'playback_update',
+            (event: any) => {
+              const data = event?.data;
+
+              if (!data) return;
+
+              // Spotify paused
+              if (data.isPaused) {
+                window.dispatchEvent(
+                  new CustomEvent('spotify-playback', {
+                    detail: { playing: false },
+                  })
+                );
+              }
+
+              // Spotify finished
+              if (
+                data.duration > 0 &&
+                data.position >= data.duration - 1000
+              ) {
+                window.dispatchEvent(
+                  new CustomEvent('spotify-playback', {
+                    detail: { playing: false },
+                  })
+                );
+              }
+            }
+          );
+        }
+      );
+    };
+
+    setupSpotify();
+
+    return () => {
+      mounted = false;
+
+      if (controller) {
+        spotifyControllers.delete(id);
+      }
+    };
+  }, [id]);
+
+  return (
+    <article className="work-card">
+      <div className="work-card__meta">
+        <span>
+          Track {String(index + 1).padStart(2, '0')}
+        </span>
+        <CircleDot size={12} />
+      </div>
+
+      <div
+        ref={embedRef}
+        aria-label={`Spotify track ${index + 1}`}
+      />
+    </article>
+  );
 }
 
 function HomePage() {
