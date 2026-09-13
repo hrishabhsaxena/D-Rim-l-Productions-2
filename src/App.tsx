@@ -395,7 +395,6 @@ function SpotifyTrackEmbed({
   }
 );
 
-
           EmbedController.addListener(
   'playback_update',
   (event: any) => {
