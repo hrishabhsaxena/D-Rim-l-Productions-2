@@ -112,33 +112,66 @@ function AudioController({ route }: { route: string }) {
     }
   };
 
-  // Try to start automatically when the website opens
-  useEffect(() => {
-    if (route === '/work') {
-      stopSound();
-      return;
-    }
+useEffect(() => {
+  if (route === '/work') {
+    stopSound();
+    return;
+  }
 
-    if (enabled) {
+  if (enabled) {
+    startSound();
+  }
+
+  const handleSpotifyPlayback = (event: Event) => {
+    const customEvent = event as CustomEvent<{ playing: boolean }>;
+
+    if (customEvent.detail.playing) {
+      stopSound();
+    } else if (enabled && route !== '/work') {
       startSound();
     }
+  };
 
-    const handleFirstInteraction = () => {
-      if (enabled && route !== '/work') {
-        startSound();
-      }
-    };
+  window.addEventListener(
+    'spotify-playback',
+    handleSpotifyPlayback
+  );
 
-    window.addEventListener('click', handleFirstInteraction, { once: true });
-    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
-    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+  const handleFirstInteraction = () => {
+    if (enabled && route !== '/work') {
+      startSound();
+    }
+  };
 
-    return () => {
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-    };
-  }, [route, enabled]);
+  window.addEventListener('click', handleFirstInteraction, {
+    once: true,
+  });
+
+  window.addEventListener('touchstart', handleFirstInteraction, {
+    once: true,
+  });
+
+  window.addEventListener('keydown', handleFirstInteraction, {
+    once: true,
+  });
+
+  return () => {
+    window.removeEventListener(
+      'spotify-playback',
+      handleSpotifyPlayback
+    );
+
+    window.removeEventListener('click', handleFirstInteraction);
+    window.removeEventListener(
+      'touchstart',
+      handleFirstInteraction
+    );
+    window.removeEventListener(
+      'keydown',
+      handleFirstInteraction
+    );
+  };
+}, [route, enabled]);
 
   const toggle = () => {
     if (enabled) {
