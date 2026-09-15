@@ -42,11 +42,23 @@ const socialLinks = [
 ];
 
 const tracks = [
+  // Existing 5 tracks — kept first
   '6zCRxw9s3uak9hOc2Zrtyi',
   '6N78o6UnFgjGXHkN50uoyS',
   '5Y1LNJKIjgZIsrkiAeKSQj',
   '2mwnyvxZvoVSXnO9BAwVn3',
   '0z8AUAjiQp61jUTVd6bL6Q',
+
+  // Additional D’Rimél releases — added after the existing 5
+  '57GNVfiIerKgjCBfm5Zpp4',
+  '60PPFsUI6SjQq9JNArNsGD',
+  '5ANkkrKFYNXWSnjIacxO9n',
+  '2iWtVB7qw4EQ5IO8YOMqbp',
+  '34jkUTjBQW5EnJXUU9sRXE',
+  '1JRRloC7NNbN2uNjAe31k4',
+  '5CFW2M2Eprc0iKq8PaIk50',
+  '3SOTgRyLelJky0L0MlBJFr',
+  '5xhfEpIJCk3Qp9pY0TovMn',
 ];
 
 const services = [
@@ -523,7 +535,7 @@ function WorkPage() {
           <span className="eyebrow">Listen in full</span>
           <p>
             Explore the D’Rimél catalogue track by track through the official
-            Spotify players.
+            Spotify players. Each release is presented as an individual player.
           </p>
         </div>
 
