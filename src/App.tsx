@@ -65,7 +65,7 @@ const services = [
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/': { title: 'D’Rimél Productions | Music Production, Composition & Orchestration', description: 'D’Rimél Productions is a professional music production house specializing in music composition, production, orchestration, background scores, film and theatre music, recording, mixing and cinematic soundscapes.' },
   '/about': { title: 'About D’Rimél Productions | Music & Orchestration', description: 'Discover the creative house and musical philosophy behind D’Rimél Productions.' },
-  '/work': { title: 'Complete Works | D’Rimél Productions', description: 'Explore the complete D’Rimél Productions music catalogue, including original compositions, orchestral works, scores and artist releases.' },
+  '/work': { title: 'Selected Works | D’Rimél Productions', description: 'Explore selected D’Rimél Productions music works, original compositions, orchestral pieces, scores and artist releases.' },
   '/services': { title: 'Music Production Services | D’Rimél Productions', description: 'Composition, production, orchestration, scoring, recording, mixing and sound design.' },
   '/contact': { title: 'Contact D’Rimél Productions', description: 'Start a project with D’Rimél Productions.' },
 };
@@ -509,134 +509,28 @@ function FounderSection() {
   return <section className="founder-section content-shell"><div className="founder-image"><img src="/images/founder-portrait.png" alt="Hrishabh Saxena at the piano" /><div className="image-caption">Hrishabh Saxena / Music Director</div></div><div className="founder-copy"><span className="eyebrow">The founder</span><h2>Hrishabh<br /><em>Saxena</em></h2><p className="founder-role">Founder • Music Director • Composer • Producer • Multi-Instrumentalist</p><p>Hrishabh Saxena is a Music Director, Composer, Producer and Multi-Instrumentalist with extensive experience in music performance, composition, production and orchestration.</p><p>With around 15 years of experience with musical instruments, Piano is his primary instrument. He also works with harmonica, mandolin, flute, cajon, melodica, violin, harmonium, guitar and other instruments.</p><p>His musical knowledge and creative interests span Western Classical, Symphony Orchestra, Jazz, Rock, Fusion, Bollywood, Latin Music, Flamenco, Indian Classical Music, Indian Raagas and contemporary cinematic scoring.</p><p>His approach bridges Indian musical traditions, Western classical, orchestral, jazz and contemporary production.</p><ButtonLink path="/contact">Collaborate with Hrishabh</ButtonLink></div></section>;
 }
 
-function SpotifyPlaylistEmbed() {
-  const embedRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let controller: SpotifyController | null = null;
-    let mounted = true;
-
-    const setupSpotify = async () => {
-      const IFrameAPI = await getSpotifyAPI();
-
-      if (!mounted || !embedRef.current) return;
-
-      const options = {
-        width: '100%',
-        height: 500,
-        url: 'https://open.spotify.com/playlist/1J1k6AWgrCX63iGlitfOZB',
-      };
-
-      IFrameAPI.createController(
-        embedRef.current,
-        options,
-        (EmbedController: SpotifyController) => {
-          if (!mounted) return;
-
-          controller = EmbedController;
-
-          EmbedController.addListener(
-            'playback_started',
-            (event: any) => {
-              activeSpotifyTrackId = event?.data?.playingURI ?? 'playlist';
-
-              window.dispatchEvent(
-                new CustomEvent('spotify-playback', {
-                  detail: { playing: true },
-                })
-              );
-            }
-          );
-
-          EmbedController.addListener(
-            'playback_update',
-            (event: any) => {
-              const data = event?.data;
-
-              if (!data) return;
-
-              if (!data.isPaused) {
-                activeSpotifyTrackId =
-                  data.playingURI ?? activeSpotifyTrackId ?? 'playlist';
-
-                window.dispatchEvent(
-                  new CustomEvent('spotify-playback', {
-                    detail: { playing: true },
-                  })
-                );
-
-                return;
-              }
-
-              activeSpotifyTrackId = null;
-
-              window.dispatchEvent(
-                new CustomEvent('spotify-playback', {
-                  detail: { playing: false },
-                })
-              );
-            }
-          );
-        }
-      );
-    };
-
-    setupSpotify();
-
-    return () => {
-      mounted = false;
-
-      if (controller) {
-        controller.destroy?.();
-      }
-
-      activeSpotifyTrackId = null;
-
-      window.dispatchEvent(
-        new CustomEvent('spotify-playback', {
-          detail: { playing: false },
-        })
-      );
-    };
-  }, []);
-
-  return (
-    <article className="work-card work-card--playlist">
-      <div className="work-card__meta">
-        <span>DRIMÉL CATALOGUE</span>
-        <CircleDot size={12} />
-      </div>
-
-      <div
-        ref={embedRef}
-        className="spotify-playlist-embed"
-        aria-label="Complete D’Rimél Productions Spotify catalogue"
-      />
-    </article>
-  );
-}
-
 function WorkPage() {
   return (
     <>
       <Hero
         eyebrow="The catalogue"
-        title="Complete works"
-        text="Explore the complete D’Rimél Productions catalogue — original compositions, orchestral works, scores, collaborations and artist releases."
+        title="Selected works"
+        text="Music created for listening, storytelling and visual imagination."
       />
 
       <section className="works-section content-shell">
         <div className="works-intro">
-          <span className="eyebrow">The complete catalogue</span>
+          <span className="eyebrow">Listen in full</span>
           <p>
-            Listen to all D’Rimél Productions releases through the official
-            Spotify catalogue. New releases added to the playlist will appear
-            here automatically.
+            Explore the D’Rimél catalogue track by track through the official
+            Spotify players.
           </p>
         </div>
 
-        <div className="works-grid works-grid--playlist">
-          <SpotifyPlaylistEmbed />
+        <div className="works-grid">
+          {tracks.map((id, index) => (
+            <SpotifyTrackEmbed key={id} id={id} index={index} />
+          ))}
         </div>
       </section>
     </>
