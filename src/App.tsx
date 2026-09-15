@@ -42,18 +42,15 @@ const socialLinks = [
 ];
 
 const tracks = [
-  // Existing 5 tracks — kept first
   '6zCRxw9s3uak9hOc2Zrtyi',
   '6N78o6UnFgjGXHkN50uoyS',
   '5Y1LNJKIjgZIsrkiAeKSQj',
-  '2mwnyvxZvoVSXnO9BAwVn3',
+  '2iWtVB7qw4EQ5IO8YOMqbp',
   '0z8AUAjiQp61jUTVd6bL6Q',
-
-  // Additional D’Rimél releases — added after the existing 5
   '57GNVfiIerKgjCBfm5Zpp4',
   '60PPFsUI6SjQq9JNArNsGD',
   '5ANkkrKFYNXWSnjIacxO9n',
-  '2iWtVB7qw4EQ5IO8YOMqbp',
+  '2mwnyvxZvoVSXnO9BAwVn3',
   '34jkUTjBQW5EnJXUU9sRXE',
   '1JRRloC7NNbN2uNjAe31k4',
   '5CFW2M2Eprc0iKq8PaIk50',
@@ -77,7 +74,7 @@ const services = [
 const pageMeta: Record<string, { title: string; description: string }> = {
   '/': { title: 'D’Rimél Productions | Music Production, Composition & Orchestration', description: 'D’Rimél Productions is a professional music production house specializing in music composition, production, orchestration, background scores, film and theatre music, recording, mixing and cinematic soundscapes.' },
   '/about': { title: 'About D’Rimél Productions | Music & Orchestration', description: 'Discover the creative house and musical philosophy behind D’Rimél Productions.' },
-  '/work': { title: 'Selected Works | D’Rimél Productions', description: 'Explore selected D’Rimél Productions music works, original compositions, orchestral pieces, scores and artist releases.' },
+  '/work': { title: 'Works | D’Rimél Productions', description: 'Listen to selected music from D’Rimél Productions for listening, storytelling and visual imagination.' },
   '/services': { title: 'Music Production Services | D’Rimél Productions', description: 'Composition, production, orchestration, scoring, recording, mixing and sound design.' },
   '/contact': { title: 'Contact D’Rimél Productions', description: 'Start a project with D’Rimél Productions.' },
 };
@@ -336,7 +333,6 @@ function Hero({ children, eyebrow, title, text, image = false }: { children?: Re
 type SpotifyController = {
   play: () => void;
   pause: () => void;
-  destroy?: () => void;
   addListener: (
     event: string,
     callback: (event: any) => void
@@ -522,31 +518,7 @@ function FounderSection() {
 }
 
 function WorkPage() {
-  return (
-    <>
-      <Hero
-        eyebrow="The catalogue"
-        title="Selected works"
-        text="Music created for listening, storytelling and visual imagination."
-      />
-
-      <section className="works-section content-shell">
-        <div className="works-intro">
-          <span className="eyebrow">Listen in full</span>
-          <p>
-            Explore the D’Rimél catalogue track by track through the official
-            Spotify players. Each release is presented as an individual player.
-          </p>
-        </div>
-
-        <div className="works-grid">
-          {tracks.map((id, index) => (
-            <SpotifyTrackEmbed key={id} id={id} index={index} />
-          ))}
-        </div>
-      </section>
-    </>
-  );
+  return <><Hero eyebrow="The catalogue" title="Selected works" text="Music created for listening, storytelling and visual imagination." /><section className="works-section content-shell"><div className="works-intro"><span className="eyebrow">Listen in full</span><p>Five pieces from the D’Rimél catalogue, presented through Spotify.</p></div><div className="works-grid">{tracks.map((id, index) => <SpotifyTrackEmbed key={id} id={id} index={index} />)}</div></section></>;
 }
 
 function ServicesPage() {
