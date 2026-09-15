@@ -518,7 +518,7 @@ function FounderSection() {
 }
 
 function WorkPage() {
-  return <><Hero eyebrow="The catalogue" title="Selected works" text="Music created for listening, storytelling and visual imagination." /><section className="works-section content-shell"><div className="works-intro"><span className="eyebrow">Listen in full</span><p>Five pieces from the D’Rimél catalogue, presented through Spotify.</p></div><div className="works-grid">{tracks.map((id, index) => <SpotifyTrackEmbed key={id} id={id} index={index} />)}</div></section></>;
+  return <><Hero eyebrow="The catalogue" title="Selected works" text="Music created for listening, storytelling and visual imagination." /><section className="works-section content-shell"><div className="works-intro"><span className="eyebrow">Listen in full</span></div><div className="works-grid">{tracks.map((id, index) => <SpotifyTrackEmbed key={id} id={id} index={index} />)}</div></section></>;
 }
 
 function ServicesPage() {
